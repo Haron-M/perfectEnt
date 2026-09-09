@@ -2,1099 +2,246 @@
 <html lang="en" class="dark">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Journal & Analytics Suite</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trading Journal - Auth Portal</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Supabase JS Client CDN -->
+    <!-- Supabase JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        darkBg: '#090d14',
-                        cardBg: '#121824',
-                        cardBorder: '#1e293b',
-                        hoverBg: '#1a2332',
-                        accentGreen: '#10b981',
-                        accentRed: '#ef4444'
+                        dark: {
+                            bg: '#0B0E14',
+                            card: '#121721',
+                            border: '#1E2638',
+                            hover: '#1A2232',
+                            text: '#94A3B8',
+                            textMuted: '#64748B'
+                        }
                     }
                 }
             }
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-        * {
-            font-family: 'Inter', sans-serif;
-            box-sizing: border-box;
-        }
-
         body {
-            background-color: #090d14;
-            color: #f1f5f9;
-        }
-
-        /* Custom scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #090d14;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #334155;
-        }
-
-        /* Calendar Cell Styles */
-        .calendar-cell {
-            min-height: 92px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .calendar-cell:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-        }
-
-        /* Heatmap Visual States */
-        .cell-heavy-loss {
-            background-color: rgba(239, 68, 68, 0.22);
-            border: 1px solid rgba(239, 68, 68, 0.6);
-        }
-
-        .cell-mod-loss {
-            background-color: rgba(249, 115, 22, 0.22);
-            border: 1px solid rgba(249, 115, 22, 0.6);
-        }
-
-        .cell-minor-loss {
-            background-color: rgba(252, 165, 165, 0.15);
-            border: 1px solid rgba(252, 165, 165, 0.4);
-        }
-
-        .cell-no-trades {
-            background-color: #121824;
-            border: 1px solid #1e293b;
-        }
-
-        .cell-minor-gain {
-            background-color: rgba(167, 243, 208, 0.12);
-            border: 1px solid rgba(167, 243, 208, 0.35);
-        }
-
-        .cell-mod-gain {
-            background-color: rgba(52, 211, 153, 0.22);
-            border: 1px solid rgba(52, 211, 153, 0.6);
-        }
-
-        .cell-strong-gain {
-            background-color: rgba(16, 185, 129, 0.32);
-            border: 1px solid rgba(16, 185, 129, 0.8);
+            background-color: #0B0E14;
+            color: #E2E8F0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col">
+<body
+    class="min-h-screen flex items-center justify-center p-4 relative overflow-x-hidden bg-cover bg-center bg-no-repeat"
+    style="background-image: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=2000&q=80');">
 
-    <!-- Navigation Header -->
-    <header
-        class="border-b border-cardBorder bg-cardBg/80 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 py-3 max-w-full overflow-x-hidden">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+    <!-- Dark Overlay with Gradient for Trading Chart Effect -->
+    <div class="absolute inset-0 bg-gradient-to-br from-[#0B0E14]/95 via-[#0B0E14]/85 to-[#051E1B]/90 z-0"></div>
 
-            <!-- Branding Logo & Title -->
-            <div class="flex items-center space-x-2 sm:space-x-3 shrink min-w-0">
-                <div
-                    class="bg-gradient-to-tr from-emerald-500 to-teal-400 p-2 sm:p-2.5 rounded-xl shadow-lg shadow-emerald-500/10 shrink-0">
-                    <i class="fa-solid fa-chart-line text-slate-950 text-lg sm:text-xl font-black"></i>
-                </div>
-                <div class="truncate">
-                    <h1
-                        class="text-base sm:text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5 truncate">
-                        TradeVault
-                        <span
-                            class="text-[10px] sm:text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full font-semibold">Pro</span>
-                    </h1>
-                    <p class="text-[10px] sm:text-xs text-slate-400 truncate">Journal & Analytics Suite</p>
-                </div>
-            </div>
+    <!-- Auth Card Container with Glassmorphism -->
+    <div
+        class="relative z-10 w-full max-w-md bg-[#0B0E14]/80 backdrop-blur-md border border-emerald-500/20 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
 
-            <!-- Action Buttons + Logout Icon (Positioned to the Right of New Trade) -->
-            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 max-w-full">
-                <!-- Deposit Button -->
-                <button onclick="openDepositModal()"
-                    class="h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <i class="fa-solid fa-wallet text-xs"></i>
-                    <span>Deposit</span>
-                </button>
-
-                <!-- New Trade Button -->
-                <button onclick="openTradeModal()"
-                    class="h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-[11px] sm:text-xs shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <i class="fa-solid fa-plus text-xs"></i>
-                    <span>New Trade</span>
-                </button>
-
-                <!-- Logout Icon Button (Positioned Right Next to New Trade) -->
-                <button onclick="handleSignOut()"
-                    class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-cardBg/60 hover:bg-rose-500/10 border border-cardBorder hover:border-rose-500/30 text-slate-300 hover:text-rose-400 transition shadow-sm cursor-pointer shrink-0"
-                    title="Log Out">
-                    <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
-                </button>
-            </div>
-
-        </div>
-    </header>
-
-    <!-- Main Dashboard Container -->
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8">
-
-        <!-- Mobile Key Metric Overview Cards (Always at top on mobile) -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-lg">
-                <span class="text-xs text-slate-400 font-medium">Trading Profit</span>
-                <div id="equityTradingProfit" class="text-lg sm:text-xl font-bold text-white mt-1">$0.00</div>
-                <span id="equityReturnPct" class="text-xs text-slate-400 mt-1 inline-block">0.00%</span>
-            </div>
-
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-lg">
-                <span class="text-xs text-slate-400 font-medium">Net Deposits</span>
-                <div id="equityNetDeposits" class="text-lg sm:text-xl font-bold text-sky-400 mt-1">$0.00</div>
-                <span id="equityTransfersCount" class="text-xs text-slate-500 mt-1 inline-block">0 transfers</span>
-            </div>
-
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-lg">
-                <span class="text-xs text-slate-400 font-medium">Win Rate</span>
-                <div id="equityWinRate" class="text-lg sm:text-xl font-bold text-white mt-1">0.0%</div>
-                <span id="equityWinRateMsg" class="text-xs text-amber-400 mt-1 inline-block">Needs work</span>
-            </div>
-
-            <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-lg">
-                <span class="text-xs text-slate-400 font-medium">Total Trades</span>
-                <div id="equityTotalTradesCount" class="text-lg sm:text-xl font-bold text-white mt-1">0</div>
-                <span class="text-xs text-slate-500 mt-1 inline-block">Executed</span>
-            </div>
-        </div>
-
-        <!-- SECTION 1: Calendar Heatmap & Secondary Stats -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            <!-- Left Side: Heatmap Calendar (8 Cols) -->
+        <!-- Branding Header -->
+        <div class="text-center space-y-2">
             <div
-                class="lg:col-span-8 bg-cardBg border border-cardBorder rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col justify-between overflow-hidden">
-
-                <!-- Calendar Top Controls -->
-                <div class="flex items-center justify-between gap-4 mb-5">
-                    <div class="flex items-center space-x-3">
-                        <button onclick="changeMonth(-1)"
-                            class="p-2.5 rounded-xl bg-darkBg border border-cardBorder hover:border-slate-500 transition text-slate-300 hover:text-white">
-                            <i class="fa-solid fa-chevron-left text-xs"></i>
-                        </button>
-                        <h2 id="calendarMonthYear"
-                            class="text-xl md:text-2xl font-bold tracking-wide text-white min-w-[170px] text-center">
-                            September 2026</h2>
-                        <button onclick="changeMonth(1)"
-                            class="p-2.5 rounded-xl bg-darkBg border border-cardBorder hover:border-slate-500 transition text-slate-300 hover:text-white">
-                            <i class="fa-solid fa-chevron-right text-xs"></i>
-                        </button>
-                    </div>
-
-                    <!-- P/L Gradient Bar Indicator -->
-                    <div class="flex items-center space-x-2 text-xs font-semibold text-slate-400">
-                        <span>Loss</span>
-                        <div
-                            class="h-2.5 w-24 sm:w-36 rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-500">
-                        </div>
-                        <span>Gain</span>
-                    </div>
-                </div>
-
-                <!-- Mobile Horizontal Scroll Wrapper for Calendar Heatmap -->
-                <div class="w-full overflow-x-auto pb-2 -mx-2 px-2" style="-webkit-overflow-scrolling: touch;">
-                    <div class="min-w-[680px]">
-                        <!-- Calendar Days Header -->
-                        <div
-                            class="grid grid-cols-8 gap-2 text-center text-xs font-bold text-slate-400 mb-2 tracking-wider">
-                            <div>SUN</div>
-                            <div>MON</div>
-                            <div>TUE</div>
-                            <div>WED</div>
-                            <div>THU</div>
-                            <div>FRI</div>
-                            <div>SAT</div>
-                            <div class="text-emerald-400 font-extrabold">WEEK</div>
-                        </div>
-
-                        <!-- Dynamic Calendar Grid -->
-                        <div id="calendarGrid" class="grid grid-cols-8 gap-2 text-xs">
-                            <!-- JS dynamically injects cells here -->
-                        </div>
-                    </div>
-                </div>
-
+                class="inline-flex items-center justify-center w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl mb-1 shadow-lg shadow-emerald-500/10">
+                <i data-lucide="line-chart" class="w-6 h-6"></i>
             </div>
-
-            <!-- Right Side: Side Stats Column (4 Cols) -->
-            <div class="lg:col-span-4 flex flex-col justify-between space-y-4">
-
-                <!-- 2x2 Grid stats -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-cardBg border border-cardBorder rounded-xl p-4 flex flex-col justify-between">
-                        <span class="text-xs font-medium text-slate-400">Trading Days</span>
-                        <span id="statTradingDays" class="text-2xl font-black text-white mt-1">0</span>
-                    </div>
-                    <div class="bg-cardBg border border-cardBorder rounded-xl p-4 flex flex-col justify-between">
-                        <span class="text-xs font-medium text-slate-400">Total Trades</span>
-                        <span id="statTotalTrades" class="text-2xl font-black text-white mt-1">0</span>
-                    </div>
-                    <div class="bg-cardBg border border-cardBorder rounded-xl p-4 flex flex-col justify-between">
-                        <span class="text-xs font-medium text-slate-400">Profitable</span>
-                        <span id="statProfitable" class="text-2xl font-black text-emerald-400 mt-1">0</span>
-                    </div>
-                    <div class="bg-cardBg border border-cardBorder rounded-xl p-4 flex flex-col justify-between">
-                        <span class="text-xs font-medium text-slate-400">Losing</span>
-                        <span id="statLosing" class="text-2xl font-black text-rose-400 mt-1">0</span>
-                    </div>
-                </div>
-
-                <!-- TOTAL P/L Card -->
-                <div class="bg-cardBg border border-emerald-500/30 rounded-xl p-5 shadow-xl relative overflow-hidden">
-                    <div
-                        class="absolute -right-4 -bottom-4 opacity-5 text-emerald-400 text-8xl font-black select-none pointer-events-none">
-                        P/L</div>
-                    <span class="text-xs font-bold tracking-wider text-slate-400 uppercase">TOTAL P/L</span>
-                    <div id="statTotalPL" class="text-3xl font-black text-emerald-400 mt-1.5">$0.00</div>
-                </div>
-
-                <!-- AVG DAILY P/L Card -->
-                <div class="bg-cardBg border border-cardBorder rounded-xl p-5">
-                    <span class="text-xs font-bold tracking-wider text-slate-400 uppercase">AVG DAILY P/L</span>
-                    <div id="statAvgDailyPL" class="text-2xl font-bold text-white mt-1.5">$0.00</div>
-                </div>
-
-                <!-- Best & Worst Day Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                    <div class="bg-cardBg border border-cardBorder rounded-xl p-4">
-                        <div class="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
-                            <i class="fa-solid fa-arrow-trend-up"></i> Best Day
-                        </div>
-                        <div id="statBestDayVal" class="text-xl font-extrabold text-white mt-1">$0.00</div>
-                        <div id="statBestDayDate" class="text-xs text-slate-500 mt-0.5">No trades yet</div>
-                    </div>
-
-                    <div class="bg-cardBg border border-cardBorder rounded-xl p-4">
-                        <div class="flex items-center gap-1.5 text-rose-400 text-xs font-bold">
-                            <i class="fa-solid fa-arrow-trend-down"></i> Worst Day
-                        </div>
-                        <div id="statWorstDayVal" class="text-xl font-extrabold text-white mt-1">$0.00</div>
-                        <div id="statWorstDayDate" class="text-xs text-slate-500 mt-0.5">No trades yet</div>
-                    </div>
-                </div>
-
-            </div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Trade Log Portal</h1>
+            <p class="text-xs text-dark-textMuted">Access your trading journal and analytics dashboard</p>
         </div>
 
-        <!-- SECTION 2: Equity Curve Analytics -->
-        <div class="bg-cardBg border border-cardBorder rounded-2xl p-6 shadow-xl space-y-6">
-
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-bold text-white tracking-wide">Equity Curve</h2>
-                    <p class="text-xs text-slate-400">Your trading performance over time</p>
-                </div>
-
-                <button onclick="exportCSV()"
-                    class="px-4 py-2 rounded-xl bg-darkBg border border-cardBorder hover:border-slate-500 text-xs font-semibold text-slate-200 transition flex items-center gap-2">
-                    <i class="fa-solid fa-download"></i> Export CSV
-                </button>
-            </div>
-
-            <!-- Equity Chart Canvas -->
-            <div class="w-full h-80 relative pt-2">
-                <canvas id="equityChartCanvas"></canvas>
-            </div>
-
-            <!-- Chart Legend -->
-            <div
-                class="flex items-center justify-center space-x-6 text-xs text-slate-400 pt-2 border-t border-cardBorder/50">
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-0.5 bg-emerald-400 inline-block"></span> Equity
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 text-sky-400 inline-flex items-center justify-center"><i
-                            class="fa-solid fa-arrow-up text-[10px]"></i></span> Deposits
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 text-amber-500 inline-flex items-center justify-center"><i
-                            class="fa-solid fa-arrow-down text-[10px]"></i></span> Withdrawals
-                </div>
-            </div>
+        <!-- Tab Switcher -->
+        <div class="grid grid-cols-2 p-1 bg-black/40 border border-dark-border rounded-xl">
+            <button id="tab-signin-btn" onclick="switchTab('signin')"
+                class="py-2 text-xs font-semibold rounded-lg text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 transition shadow-sm">
+                Sign In
+            </button>
+            <button id="tab-signup-btn" onclick="switchTab('signup')"
+                class="py-2 text-xs font-semibold rounded-lg text-dark-text hover:text-white transition">
+                Sign Up
+            </button>
         </div>
 
-        <!-- SECTION 3: Detailed Trade Logs Table -->
-        <div class="bg-cardBg border border-cardBorder rounded-2xl p-6 shadow-xl space-y-4">
-            <div class="flex items-center justify-between">
-                <h2 class="text-lg font-bold text-white">Recent Trade Logs</h2>
-                <span id="logCountBadge"
-                    class="text-xs bg-darkBg border border-cardBorder text-slate-400 px-3 py-1 rounded-full font-semibold">0
-                    Records</span>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-300">
-                    <thead
-                        class="bg-darkBg/80 text-xs text-slate-400 uppercase tracking-wider border-b border-cardBorder">
-                        <tr>
-                            <th class="p-3">Date</th>
-                            <th class="p-3">Pair / Symbol</th>
-                            <th class="p-3">Outcome</th>
-                            <th class="p-3">Risk ($)</th>
-                            <th class="p-3">Target ($)</th>
-                            <th class="p-3">Actual P/L ($)</th>
-                            <th class="p-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tradeLogsTableBody" class="divide-y divide-cardBorder/60">
-                        <!-- Dynamic trade rows -->
-                    </tbody>
-                </table>
-            </div>
+        <!-- Alert Banner -->
+        <div id="auth-alert" class="hidden p-3 rounded-xl border text-xs font-medium flex items-center gap-2">
+            <i id="alert-icon" data-lucide="info" class="w-4 h-4 shrink-0"></i>
+            <span id="alert-text"></span>
         </div>
 
-    </main>
-
-    <!-- MODAL 1: Add/Edit Trade Modal -->
-    <div id="tradeModal"
-        class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden p-4">
-        <div class="bg-cardBg border border-cardBorder rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 relative">
-            <div class="flex items-center justify-between border-b border-cardBorder pb-3">
-                <h3 class="text-lg font-bold text-white" id="tradeModalTitle">Record New Trade</h3>
-                <button onclick="closeTradeModal()" class="text-slate-400 hover:text-white p-1"><i
-                        class="fa-solid fa-xmark text-lg"></i></button>
+        <!-- Sign In Form -->
+        <form id="signin-form" onsubmit="handleAuth(event, 'signin')" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-dark-text mb-1">Email Address</label>
+                <div class="relative">
+                    <i data-lucide="mail" class="w-4 h-4 text-dark-textMuted absolute left-3 top-3"></i>
+                    <input type="email" id="signin-email" required placeholder="trader@example.com"
+                        class="w-full bg-black/50 border border-dark-border rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+                </div>
             </div>
 
-            <form id="tradeForm" onsubmit="handleSaveTrade(event)" class="space-y-4">
-                <input type="hidden" id="tradeId">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Date</label>
-                    <input type="date" id="tradeDate" required
-                        class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-xs font-medium text-dark-text">Password</label>
+                    <a href="#" onclick="alert('Password reset link feature can be enabled in Supabase settings.')"
+                        class="text-[11px] text-emerald-400 hover:underline">Forgot?</a>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Pair / Symbol</label>
-                    <input type="text" id="tradePair" placeholder="e.g. EUR/USD, BTC/USD, AAPL" required
-                        class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 uppercase">
+                <div class="relative">
+                    <i data-lucide="lock" class="w-4 h-4 text-dark-textMuted absolute left-3 top-3"></i>
+                    <input type="password" id="signin-password" required placeholder="••••••••"
+                        class="w-full bg-black/50 border border-dark-border rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
                 </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Risk Amount ($)</label>
-                        <input type="number" step="0.01" id="tradeRisk" placeholder="50.00" required
-                            class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Target Profit ($)</label>
-                        <input type="number" step="0.01" id="tradeTarget" placeholder="100.00" required
-                            class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Outcome</label>
-                        <select id="tradeOutcome" onchange="autoFillPL()"
-                            class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-                            <option value="WIN">Win</option>
-                            <option value="LOSS">Loss</option>
-                            <option value="BREAKEVEN">Break-Even</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Actual P/L ($)</label>
-                        <input type="number" step="0.01" id="tradeActualPL" placeholder="-18.30" required
-                            class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-                    </div>
-                </div>
-
-                <div class="flex justify-end space-x-3 pt-3 border-t border-cardBorder">
-                    <button type="button" onclick="closeTradeModal()"
-                        class="px-4 py-2 rounded-xl bg-darkBg border border-cardBorder text-sm font-semibold text-slate-300 hover:text-white">Cancel</button>
-                    <button type="submit"
-                        class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20">Save
-                        Trade</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: Deposit / Cash Modal -->
-    <div id="depositModal"
-        class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden p-4">
-        <div class="bg-cardBg border border-cardBorder rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 relative">
-            <div class="flex items-center justify-between border-b border-cardBorder pb-3">
-                <h3 class="text-lg font-bold text-white">Deposit / Withdrawal</h3>
-                <button onclick="closeDepositModal()" class="text-slate-400 hover:text-white p-1"><i
-                        class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <form id="depositForm" onsubmit="handleSaveTransfer(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Transaction Type</label>
-                    <select id="transferType"
-                        class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-                        <option value="DEPOSIT">Deposit (+)</option>
-                        <option value="WITHDRAWAL">Withdrawal (-)</option>
-                    </select>
-                </div>
+            <button type="submit" id="signin-submit-btn"
+                class="w-full py-2.5 text-sm font-semibold text-black bg-emerald-500 hover:bg-emerald-400 rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                <span>Sign In</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </form>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Amount ($)</label>
-                    <input type="number" step="0.01" id="transferAmount" placeholder="1000.00" required
-                        class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+        <!-- Sign Up Form -->
+        <form id="signup-form" onsubmit="handleAuth(event, 'signup')" class="space-y-4 hidden">
+            <div>
+                <label class="block text-xs font-medium text-dark-text mb-1">Full Name</label>
+                <div class="relative">
+                    <i data-lucide="user" class="w-4 h-4 text-dark-textMuted absolute left-3 top-3"></i>
+                    <input type="text" id="signup-name" required placeholder="John Doe"
+                        class="w-full bg-black/50 border border-dark-border rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
                 </div>
+            </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Date</label>
-                    <input type="date" id="transferDate" required
-                        class="w-full bg-darkBg border border-cardBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+            <div>
+                <label class="block text-xs font-medium text-dark-text mb-1">Email Address</label>
+                <div class="relative">
+                    <i data-lucide="mail" class="w-4 h-4 text-dark-textMuted absolute left-3 top-3"></i>
+                    <input type="email" id="signup-email" required placeholder="trader@example.com"
+                        class="w-full bg-black/50 border border-dark-border rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
                 </div>
+            </div>
 
-                <div class="flex justify-end space-x-3 pt-3 border-t border-cardBorder">
-                    <button type="button" onclick="closeDepositModal()"
-                        class="px-4 py-2 rounded-xl bg-darkBg border border-cardBorder text-sm font-semibold text-slate-300 hover:text-white">Cancel</button>
-                    <button type="submit"
-                        class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20">Submit</button>
+            <div>
+                <label class="block text-xs font-medium text-dark-text mb-1">Password</label>
+                <div class="relative">
+                    <i data-lucide="lock" class="w-4 h-4 text-dark-textMuted absolute left-3 top-3"></i>
+                    <input type="password" id="signup-password" minlength="6" required
+                        placeholder="At least 6 characters"
+                        class="w-full bg-black/50 border border-dark-border rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <button type="submit" id="signup-submit-btn"
+                class="w-full py-2.5 text-sm font-semibold text-black bg-emerald-500 hover:bg-emerald-400 rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                <span>Create Account</span>
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+            </button>
+        </form>
+
     </div>
 
     <script>
-        /************************************************************************
-    * SUPABASE CREDENTIALS HARDCODING SECTION
-    ************************************************************************/
         const SUPABASE_URL = "https://hgtlatmntilgyijyyqnu.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_OqD5ksBvDVMePF1gv3s-PQ_PM5hQGnF";
+        const SUPABASE_KEY = "sb_publishable_OqD5ksBvDVMePF1gv3s-PQ_PM5hQGnF";
 
-        // Application State Variables
-        let currentDate = new Date(); // Defaults to current date
-        let trades = [];
-        let transfers = [];
         let supabaseClient = null;
-        let chartInstance = null;
-        let currentUser = null;
 
-        window.onload = async function () {
-            initSupabaseClient();
-            await checkAuthAndLoad();
-            initChart();
-
-            // Set default modal dates to today
-            const todayStr = new Date().toISOString().split('T')[0];
-            const tradeDateEl = document.getElementById('tradeDate');
-            const transferDateEl = document.getElementById('transferDate');
-            if (tradeDateEl) tradeDateEl.value = todayStr;
-            if (transferDateEl) transferDateEl.value = todayStr;
-        };
-
-        // Initialize Supabase Client
-        function initSupabaseClient() {
-            if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            if (!SUPABASE_URL.includes('YOUR_SUPABASE') && SUPABASE_KEY) {
                 try {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    console.log("Supabase initialized successfully.");
+                    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 } catch (e) {
-                    console.error("Supabase initialization failed:", e);
-                    supabaseClient = null;
+                    console.error('Supabase init error:', e);
                 }
+            }
+        });
+
+        function switchTab(tab) {
+            hideAlert();
+            const signinBtn = document.getElementById('tab-signin-btn');
+            const signupBtn = document.getElementById('tab-signup-btn');
+            const signinForm = document.getElementById('signin-form');
+            const signupForm = document.getElementById('signup-form');
+
+            if (tab === 'signin') {
+                signinBtn.className = "py-2 text-xs font-semibold rounded-lg text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 transition shadow-sm";
+                signupBtn.className = "py-2 text-xs font-semibold rounded-lg text-dark-text hover:text-white transition";
+                signinForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
             } else {
-                console.log("Operating in local browser storage mode.");
+                signupBtn.className = "py-2 text-xs font-semibold rounded-lg text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 transition shadow-sm";
+                signinBtn.className = "py-2 text-xs font-semibold rounded-lg text-dark-text hover:text-white transition";
+                signupForm.classList.remove('hidden');
+                signinForm.classList.add('hidden');
             }
         }
 
-        // Authenticate user and fetch isolated user data
-        async function checkAuthAndLoad() {
-            if (supabaseClient) {
-                try {
-                    const { data: { session }, error } = await supabaseClient.auth.getSession();
-                    if (error || !session) {
-                        window.location.href = 'auth.html';
-                        return;
-                    }
-                    currentUser = session.user;
-                    await loadStoredData();
-                } catch (err) {
-                    console.error("Auth session check error:", err);
-                    window.location.href = 'auth.html';
-                }
-            } else {
-                loadLocalData();
-                renderDashboard();
-            }
-        }
+        async function handleAuth(e, type) {
+            e.preventDefault();
+            hideAlert();
 
-        // Sign Out Functionality
-        async function handleSignOut() {
-            if (supabaseClient) {
-                const { error } = await supabaseClient.auth.signOut();
-                if (error) {
-                    console.error('Logout error:', error.message);
-                    alert('Error logging out: ' + error.message);
-                    return;
-                }
-            }
-            localStorage.clear();
-            window.location.href = 'auth.html';
-        }
-
-        // Fetch stored trades & transfers strictly matching the current user's ID
-        async function loadStoredData() {
-            if (supabaseClient && currentUser) {
-                try {
-                    const { data: tData, error: tErr } = await supabaseClient
-                        .from('trades')
-                        .select('*')
-                        .eq('user_id', currentUser.id);
-
-                    const { data: trData, error: trErr } = await supabaseClient
-                        .from('transfers')
-                        .select('*')
-                        .eq('user_id', currentUser.id);
-
-                    trades = (!tErr && tData) ? tData : [];
-                    transfers = (!trErr && trData) ? trData : [];
-
-                    // Save state cache locally under user ID key
-                    saveLocalCache();
-                } catch (err) {
-                    console.warn("Supabase fetch failed, falling back to LocalStorage:", err);
-                    loadLocalData();
-                }
-            } else {
-                loadLocalData();
-            }
-            renderDashboard();
-        }
-
-        function loadLocalData() {
-            const keyPrefix = currentUser ? currentUser.id : 'guest';
-            const localT = localStorage.getItem(`tj_trades_${keyPrefix}`);
-            const localTr = localStorage.getItem(`tj_transfers_${keyPrefix}`);
-
-            trades = localT ? JSON.parse(localT) : [];
-            transfers = localTr ? JSON.parse(localTr) : [];
-        }
-
-        function saveLocalCache() {
-            const keyPrefix = currentUser ? currentUser.id : 'guest';
-            localStorage.setItem(`tj_trades_${keyPrefix}`, JSON.stringify(trades));
-            localStorage.setItem(`tj_transfers_${keyPrefix}`, JSON.stringify(transfers));
-        }
-
-        function saveData() {
-            saveLocalCache();
-            renderDashboard();
-        }
-
-        function renderDashboard() {
-            renderCalendar();
-            renderStats();
-            renderChart();
-            renderLogsTable();
-        }
-
-        function changeMonth(delta) {
-            currentDate.setMonth(currentDate.getMonth() + delta);
-            renderDashboard();
-        }
-
-        function renderCalendar() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-            const monthYrEl = document.getElementById('calendarMonthYear');
-            if (monthYrEl) monthYrEl.innerText = `${monthNames[month]} ${year}`;
-
-            const grid = document.getElementById('calendarGrid');
-            if (!grid) return;
-            grid.innerHTML = '';
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const daysInPrevMonth = new Date(year, month, 0).getDate();
-
-            const tradeMap = {};
-            trades.forEach(t => {
-                if (!tradeMap[t.date]) tradeMap[t.date] = { count: 0, pl: 0 };
-                tradeMap[t.date].count += 1;
-                tradeMap[t.date].pl += parseFloat(t.actual_pl || 0);
-            });
-
-            let cellCount = 0;
-            let currentWeekPL = 0;
-            let currentWeekTrades = 0;
-            let weekNumber = 1;
-
-            for (let i = firstDay - 1; i >= 0; i--) {
-                const dayNum = daysInPrevMonth - i;
-                grid.appendChild(createCalendarCell(dayNum, null, null, true));
-                cellCount++;
-            }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const data = tradeMap[dateStr];
-
-                if (data) {
-                    currentWeekPL += data.pl;
-                    currentWeekTrades += data.count;
-                }
-
-                grid.appendChild(createCalendarCell(day, data ? data : null, dateStr, false));
-                cellCount++;
-
-                if (cellCount % 7 === 0) {
-                    grid.appendChild(createWeekSummaryCell(weekNumber, currentWeekPL, currentWeekTrades));
-                    currentWeekPL = 0;
-                    currentWeekTrades = 0;
-                    weekNumber++;
-                }
-            }
-
-            let nextMonthDay = 1;
-            while (cellCount % 7 !== 0) {
-                grid.appendChild(createCalendarCell(nextMonthDay, null, null, true));
-                cellCount++;
-                nextMonthDay++;
-            }
-            if (currentWeekTrades > 0 || cellCount % 7 === 0) {
-                grid.appendChild(createWeekSummaryCell(weekNumber, currentWeekPL, currentWeekTrades));
-            }
-        }
-
-        function getHeatmapClass(data) {
-            if (!data || data.count === 0) return 'cell-no-trades';
-            const pl = data.pl;
-            if (pl <= -50) return 'cell-heavy-loss';
-            if (pl < -15) return 'cell-mod-loss';
-            if (pl < 0) return 'cell-minor-loss';
-            if (pl > 0 && pl <= 20) return 'cell-minor-gain';
-            if (pl > 20 && pl <= 60) return 'cell-mod-gain';
-            if (pl > 60) return 'cell-strong-gain';
-            return 'cell-no-trades';
-        }
-
-        function createCalendarCell(day, data, dateStr, isOtherMonth) {
-            const div = document.createElement('div');
-            div.className = `calendar-cell rounded-2xl p-2.5 flex flex-col justify-between border cursor-pointer select-none ${isOtherMonth ? 'opacity-25 border-transparent bg-darkBg/30' : getHeatmapClass(data)}`;
-
-            if (dateStr && !isOtherMonth) {
-                div.onclick = () => {
-                    const tradeDateEl = document.getElementById('tradeDate');
-                    if (tradeDateEl) tradeDateEl.value = dateStr;
-                    openTradeModal();
-                };
-            }
-
-            const topRow = `<div class="font-bold text-slate-300 text-xs">${day}</div>`;
-
-            let bottomContent = `<div class="text-[10px] text-slate-500 font-medium">No data</div>`;
-            if (data && data.count > 0) {
-                const isProfit = data.pl >= 0;
-                const plFormatted = (isProfit ? '+' : '') + '$' + data.pl.toFixed(2);
-                const plColor = isProfit ? 'text-emerald-400 font-extrabold' : 'text-rose-400 font-extrabold';
-                bottomContent = `
-            <div class="mt-1 overflow-hidden leading-tight">
-                <div class="${plColor} text-xs tracking-tight truncate" title="${plFormatted}">${plFormatted}</div>
-                <div class="text-[10px] text-slate-400 font-medium whitespace-nowrap">${data.count} trade${data.count > 1 ? 's' : ''}</div>
-            </div>
-        `;
-            }
-
-            div.innerHTML = topRow + bottomContent;
-            return div;
-        }
-
-        function createWeekSummaryCell(weekNum, weekPL, weekTrades) {
-            const div = document.createElement('div');
-            div.className = "calendar-cell rounded-2xl p-2.5 flex flex-col justify-between border border-cardBorder bg-darkBg/80 text-right";
-
-            const isProfit = weekPL >= 0;
-            const plFormatted = (isProfit ? '+' : '') + '$' + weekPL.toFixed(2);
-            const plColor = isProfit ? 'text-emerald-400' : 'text-rose-400';
-
-            div.innerHTML = `
-        <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">WEEK ${weekNum}</div>
-        <div class="mt-1 overflow-hidden leading-tight">
-            <div class="${plColor} font-extrabold text-xs tracking-tight truncate" title="${plFormatted}">${plFormatted}</div>
-            <div class="text-[10px] text-slate-500 font-medium whitespace-nowrap">${weekTrades} trades</div>
-        </div>
-    `;
-            return div;
-        }
-
-        function renderStats() {
-            let totalPL = 0;
-            let totalTrades = trades.length;
-            let wins = 0;
-            let losses = 0;
-
-            const dailyPLMap = {};
-
-            trades.forEach(t => {
-                const pl = parseFloat(t.actual_pl || 0);
-                totalPL += pl;
-                if (pl > 0) wins++;
-                else if (pl < 0) losses++;
-
-                if (!dailyPLMap[t.date]) dailyPLMap[t.date] = 0;
-                dailyPLMap[t.date] += pl;
-            });
-
-            const tradingDaysCount = Object.keys(dailyPLMap).length;
-            const avgDailyPL = tradingDaysCount > 0 ? (totalPL / tradingDaysCount) : 0;
-
-            let bestDayVal = -Infinity;
-            let bestDayDate = 'No trades';
-            let worstDayVal = Infinity;
-            let worstDayDate = 'No trades';
-
-            Object.entries(dailyPLMap).forEach(([dateStr, pl]) => {
-                if (pl > bestDayVal) {
-                    bestDayVal = pl;
-                    bestDayDate = formatDateLabel(dateStr);
-                }
-                if (pl < worstDayVal) {
-                    worstDayVal = pl;
-                    worstDayDate = formatDateLabel(dateStr);
-                }
-            });
-
-            if (bestDayVal === -Infinity) bestDayVal = 0;
-            if (worstDayVal === Infinity) worstDayVal = 0;
-
-            let netDeposits = 0;
-            transfers.forEach(tr => {
-                const amt = parseFloat(tr.amount || 0);
-                if (tr.type === 'DEPOSIT') netDeposits += amt;
-                else if (tr.type === 'WITHDRAWAL') netDeposits -= amt;
-            });
-
-            const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0.0';
-
-            const setElText = (id, text) => {
-                const el = document.getElementById(id);
-                if (el) el.innerText = text;
-            };
-
-            setElText('statTradingDays', tradingDaysCount);
-            setElText('statTotalTrades', totalTrades);
-            setElText('statProfitable', wins);
-            setElText('statLosing', losses);
-
-            const totalPLFormatted = (totalPL >= 0 ? '$' : '-$') + Math.abs(totalPL).toFixed(2);
-            const totalPLEl = document.getElementById('statTotalPL');
-            if (totalPLEl) {
-                totalPLEl.innerText = totalPLFormatted;
-                totalPLEl.className = `text-3xl font-black mt-1.5 ${totalPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-            }
-
-            setElText('statAvgDailyPL', (avgDailyPL >= 0 ? '$' : '-$') + Math.abs(avgDailyPL).toFixed(2));
-            setElText('statBestDayVal', (bestDayVal >= 0 ? '$' : '-$') + Math.abs(bestDayVal).toFixed(2));
-            setElText('statBestDayDate', bestDayDate);
-            setElText('statWorstDayVal', (worstDayVal >= 0 ? '$' : '-$') + Math.abs(worstDayVal).toFixed(2));
-            setElText('statWorstDayDate', worstDayDate);
-
-            setElText('equityTradingProfit', totalPLFormatted);
-            setElText('equityNetDeposits', '$' + netDeposits.toFixed(2));
-            setElText('equityTransfersCount', `${transfers.length} transfers`);
-            setElText('equityWinRate', `${winRate}%`);
-            setElText('equityTotalTradesCount', totalTrades);
-
-            const winRateNum = parseFloat(winRate);
-            const msgEl = document.getElementById('equityWinRateMsg');
-            if (msgEl) {
-                if (totalTrades === 0) {
-                    msgEl.innerText = 'No trades logged';
-                    msgEl.className = 'text-xs text-slate-400 mt-1 inline-block font-semibold';
-                } else if (winRateNum >= 50) {
-                    msgEl.innerText = 'Good Standing';
-                    msgEl.className = 'text-xs text-emerald-400 mt-1 inline-block font-semibold';
-                } else {
-                    msgEl.innerText = 'Needs work';
-                    msgEl.className = 'text-xs text-amber-400 mt-1 inline-block font-semibold';
-                }
-            }
-        }
-
-        function formatDateLabel(dateStr) {
-            if (!dateStr || dateStr === 'No trades') return 'No trades';
-            const parts = dateStr.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            return `${monthNames[d.getMonth()]} ${d.getDate()}`;
-        }
-
-        function initChart() {
-            const canvas = document.getElementById('equityChartCanvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Equity',
-                        data: [],
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                        borderWidth: 2.5,
-                        tension: 0.15,
-                        fill: true,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => ` Equity: $${context.raw.toFixed(2)}`
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
-                        y: {
-                            grid: { color: '#1e293b' },
-                            ticks: {
-                                color: '#94a3b8',
-                                callback: (value) => '$' + value.toFixed(2)
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderChart() {
-            if (!chartInstance) return;
-
-            const events = [];
-            trades.forEach(t => events.push({ date: t.date, type: 'TRADE', amount: parseFloat(t.actual_pl || 0) }));
-            transfers.forEach(tr => {
-                const amt = parseFloat(tr.amount || 0);
-                events.push({ date: tr.date, type: 'TRANSFER', amount: tr.type === 'DEPOSIT' ? amt : -amt });
-            });
-
-            events.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-            let currentEquity = 0;
-            const labels = [];
-            const dataPoints = [];
-
-            if (events.length === 0) {
-                labels.push('Start');
-                dataPoints.push(0);
-            } else {
-                events.forEach(ev => {
-                    currentEquity += ev.amount;
-                    labels.push(formatDateLabel(ev.date));
-                    dataPoints.push(currentEquity);
-                });
-            }
-
-            chartInstance.data.labels = labels;
-            chartInstance.data.datasets[0].data = dataPoints;
-            chartInstance.update();
-        }
-
-        function renderLogsTable() {
-            const tbody = document.getElementById('tradeLogsTableBody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            const badge = document.getElementById('logCountBadge');
-            if (badge) badge.innerText = `${trades.length} Records`;
-
-            if (trades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500 text-xs">No trade logs found. Click "New Trade" to start journaling!</td></tr>`;
+            if (!supabaseClient) {
+                showAlert('Please configure SUPABASE_URL and SUPABASE_KEY in the script tag.', 'error');
                 return;
             }
 
-            const sortedTrades = [...trades].sort((a, b) => new Date(b.date) - new Date(a.date));
+            if (type === 'signin') {
+                const email = document.getElementById('signin-email').value;
+                const password = document.getElementById('signin-password').value;
 
-            sortedTrades.forEach(t => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-darkBg/50 transition";
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    showAlert(error.message, 'error');
+                } else {
+                    showAlert('Sign in successful! Redirecting...', 'success');
+                    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+                }
+            } else if (type === 'signup') {
+                const name = document.getElementById('signup-name').value;
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
 
-                const pl = parseFloat(t.actual_pl || 0);
-                const isWin = pl >= 0;
-                const plClass = isWin ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: { data: { full_name: name } }
+                });
 
-                let badgeColor = "bg-rose-500/10 text-rose-400 border-rose-500/20";
-                if (t.outcome === 'WIN') badgeColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-                if (t.outcome === 'BREAKEVEN') badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-
-                tr.innerHTML = `
-            <td class="p-3 font-medium text-slate-200">${t.date}</td>
-            <td class="p-3 font-bold text-white uppercase">${t.pair}</td>
-            <td class="p-3"><span class="px-2.5 py-0.5 border text-xs rounded-full font-semibold ${badgeColor}">${t.outcome}</span></td>
-            <td class="p-3 text-slate-400">$${parseFloat(t.risk || 0).toFixed(2)}</td>
-            <td class="p-3 text-slate-400">$${parseFloat(t.target || 0).toFixed(2)}</td>
-            <td class="p-3 ${plClass}">${isWin ? '+' : ''}$${pl.toFixed(2)}</td>
-            <td class="p-3 text-right space-x-2">
-                <button onclick="editTrade('${t.id}')" class="text-slate-400 hover:text-emerald-400 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                <button onclick="deleteTrade('${t.id}')" class="text-slate-400 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button>
-            </td>
-        `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function autoFillPL() {
-            const outcome = document.getElementById('tradeOutcome').value;
-            const risk = parseFloat(document.getElementById('tradeRisk').value) || 0;
-            const target = parseFloat(document.getElementById('tradeTarget').value) || 0;
-            const plInput = document.getElementById('tradeActualPL');
-
-            if (outcome === 'WIN' && target > 0) plInput.value = target;
-            else if (outcome === 'LOSS' && risk > 0) plInput.value = -risk;
-            else if (outcome === 'BREAKEVEN') plInput.value = 0;
-        }
-
-        async function handleSaveTrade(e) {
-            e.preventDefault();
-            const id = document.getElementById('tradeId').value || Date.now().toString();
-            const tradeObj = {
-                id: id,
-                user_id: currentUser ? currentUser.id : null,
-                date: document.getElementById('tradeDate').value,
-                pair: document.getElementById('tradePair').value.toUpperCase(),
-                risk: parseFloat(document.getElementById('tradeRisk').value) || 0,
-                target: parseFloat(document.getElementById('tradeTarget').value) || 0,
-                outcome: document.getElementById('tradeOutcome').value,
-                actual_pl: parseFloat(document.getElementById('tradeActualPL').value) || 0
-            };
-
-            if (supabaseClient && currentUser) {
-                try {
-                    await supabaseClient.from('trades').upsert([tradeObj]);
-                } catch (err) {
-                    console.error("Supabase trade sync error:", err);
+                if (error) {
+                    showAlert(error.message, 'error');
+                } else {
+                    showAlert('Account created! Check your email to verify.', 'success');
                 }
             }
-
-            const existingIdx = trades.findIndex(t => t.id === id);
-            if (existingIdx >= 0) trades[existingIdx] = tradeObj;
-            else trades.push(tradeObj);
-
-            saveData();
-            closeTradeModal();
         }
 
-        async function deleteTrade(id) {
-            if (supabaseClient && currentUser) {
-                try {
-                    await supabaseClient.from('trades').delete().eq('id', id).eq('user_id', currentUser.id);
-                } catch (err) {
-                    console.error("Delete trade error:", err);
-                }
-            }
-            trades = trades.filter(t => t.id !== id);
-            saveData();
-        }
+        function showAlert(msg, type) {
+            const banner = document.getElementById('auth-alert');
+            const text = document.getElementById('alert-text');
+            banner.classList.remove('hidden', 'bg-rose-500/10', 'border-rose-500/20', 'text-rose-400', 'bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
 
-        function editTrade(id) {
-            const t = trades.find(item => item.id === id);
-            if (!t) return;
-            document.getElementById('tradeId').value = t.id;
-            document.getElementById('tradeDate').value = t.date;
-            document.getElementById('tradePair').value = t.pair;
-            document.getElementById('tradeRisk').value = t.risk;
-            document.getElementById('tradeTarget').value = t.target;
-            document.getElementById('tradeOutcome').value = t.outcome;
-            document.getElementById('tradeActualPL').value = t.actual_pl;
-
-            document.getElementById('tradeModalTitle').innerText = 'Edit Trade';
-            document.getElementById('tradeModal').classList.remove('hidden');
-        }
-
-        async function handleSaveTransfer(e) {
-            e.preventDefault();
-            const transferObj = {
-                id: Date.now().toString(),
-                user_id: currentUser ? currentUser.id : null,
-                type: document.getElementById('transferType').value,
-                amount: parseFloat(document.getElementById('transferAmount').value) || 0,
-                date: document.getElementById('transferDate').value
-            };
-
-            if (supabaseClient && currentUser) {
-                try {
-                    await supabaseClient.from('transfers').insert([transferObj]);
-                } catch (err) {
-                    console.error("Supabase transfer error:", err);
-                }
+            if (type === 'error') {
+                banner.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
+            } else {
+                banner.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
             }
 
-            transfers.push(transferObj);
-            saveData();
-            closeDepositModal();
+            text.innerText = msg;
+            banner.classList.remove('hidden');
         }
 
-        function exportCSV() {
-            if (trades.length === 0) return;
-            let csv = 'Date,Pair,Outcome,Risk,Target,Actual_PL\n';
-            trades.forEach(t => {
-                csv += `${t.date},${t.pair},${t.outcome},${t.risk},${t.target},${t.actual_pl}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `trading_journal_${new Date().toISOString().split('T')[0]}.csv`);
-            a.click();
+        function hideAlert() {
+            document.getElementById('auth-alert').classList.add('hidden');
         }
-
-        // Modal Controls
-        function openTradeModal() {
-            document.getElementById('tradeId').value = '';
-            document.getElementById('tradeForm').reset();
-            document.getElementById('tradeModalTitle').innerText = 'Record New Trade';
-            document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('tradeModal').classList.remove('hidden');
-        }
-        function closeTradeModal() { document.getElementById('tradeModal').classList.add('hidden'); }
-
-        function openDepositModal() {
-            document.getElementById('depositForm').reset();
-            document.getElementById('transferDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('depositModal').classList.remove('hidden');
-        }
-        function closeDepositModal() { document.getElementById('depositModal').classList.add('hidden'); }
     </script>
 </body>
 
