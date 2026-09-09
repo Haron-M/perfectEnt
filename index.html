@@ -115,36 +115,51 @@
 <body class="min-h-screen flex flex-col">
 
     <!-- Navigation Header -->
-    <header class="border-b border-cardBorder bg-cardBg/80 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3.5">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            <div class="flex items-center space-x-3">
+    <header
+        class="border-b border-cardBorder bg-cardBg/80 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 py-3 max-w-full overflow-x-hidden">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+
+            <!-- Branding Logo & Title -->
+            <div class="flex items-center space-x-2 sm:space-x-3 shrink min-w-0">
                 <div
-                    class="bg-gradient-to-tr from-emerald-500 to-teal-400 p-2.5 rounded-xl shadow-lg shadow-emerald-500/10">
-                    <i class="fa-solid fa-chart-line text-slate-950 text-xl font-black"></i>
+                    class="bg-gradient-to-tr from-emerald-500 to-teal-400 p-2 sm:p-2.5 rounded-xl shadow-lg shadow-emerald-500/10 shrink-0">
+                    <i class="fa-solid fa-chart-line text-slate-950 text-lg sm:text-xl font-black"></i>
                 </div>
-                <div>
-                    <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                        TradeVault <span
-                            class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">Pro</span>
+                <div class="truncate">
+                    <h1
+                        class="text-base sm:text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5 truncate">
+                        TradeVault
+                        <span
+                            class="text-[10px] sm:text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full font-semibold">Pro</span>
                     </h1>
-                    <p class="text-xs text-slate-400">Journal & Analytics Suite</p>
+                    <p class="text-[10px] sm:text-xs text-slate-400 truncate">Journal & Analytics Suite</p>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex items-center space-x-3">
+            <!-- Action Buttons + Logout Icon (Positioned to the Right of New Trade) -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 max-w-full">
+                <!-- Deposit Button -->
                 <button onclick="openDepositModal()"
-                    class="px-3.5 py-2 rounded-xl border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition text-xs md:text-sm font-semibold flex items-center gap-2">
-                    <i class="fa-solid fa-wallet"></i>
-                    <span>Deposit / Cash</span>
+                    class="h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-wallet text-xs"></i>
+                    <span>Deposit</span>
                 </button>
 
+                <!-- New Trade Button -->
                 <button onclick="openTradeModal()"
-                    class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs md:text-sm shadow-lg shadow-emerald-500/20 transition flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i>
+                    class="h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-[11px] sm:text-xs shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-plus text-xs"></i>
                     <span>New Trade</span>
                 </button>
+
+                <!-- Logout Icon Button (Positioned Right Next to New Trade) -->
+                <button onclick="handleSignOut()"
+                    class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-cardBg/60 hover:bg-rose-500/10 border border-cardBorder hover:border-rose-500/30 text-slate-300 hover:text-rose-400 transition shadow-sm cursor-pointer shrink-0"
+                    title="Log Out">
+                    <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
+                </button>
             </div>
+
         </div>
     </header>
 
@@ -502,7 +517,23 @@
             document.getElementById('tradeDate').value = todayStr;
             document.getElementById('transferDate').value = todayStr;
         };
+        // Sign Out Functionality
+        async function handleSignOut() {
+            if (supabaseClient) {
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) {
+                    console.error('Logout error:', error.message);
+                    alert('Error logging out: ' + error.message);
+                    return;
+                }
+            }
 
+            // Clear any local storage session caches if applicable
+            localStorage.removeItem('sb-access-token');
+
+            // Redirect to authentication portal
+            window.location.href = 'auth.html';
+        }
         function initSupabaseClient() {
             if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
                 try {
