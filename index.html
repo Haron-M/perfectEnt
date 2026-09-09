@@ -489,34 +489,68 @@
 
     <script>
         /************************************************************************
-         * SUPABASE CREDENTIALS HARDCODING SECTION
-         * Paste your project credentials here. Leave empty to use browser LocalStorage.
-         ************************************************************************/
-        const SUPABASE_URL = "https://hgtlatmntilgyijyyqnu.supabase.co";      // e.g. "https://your-project.supabase.co"
-        const SUPABASE_ANON_KEY = "sb_publishable_OqD5ksBvDVMePF1gv3s-PQ_PM5hQGnF"; // e.g. "eyJhbGciOiJIUzI1NiIsInR5..."
+    * SUPABASE CREDENTIALS HARDCODING SECTION
+    ************************************************************************/
+        const SUPABASE_URL = "https://hgtlatmntilgyijyyqnu.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_OqD5ksBvDVMePF1gv3s-PQ_PM5hQGnF";
 
         // Application State Variables
-        let currentDate = new Date(2026, 8, 1); // September 2026 default
+        let currentDate = new Date(); // Defaults to current date
         let trades = [];
         let transfers = [];
         let supabaseClient = null;
         let chartInstance = null;
+        let currentUser = null;
 
-        // Sample initial seed trade matching reference image
-        const initialTradesSeed = [
-            { id: '1', date: '2026-09-09', pair: 'EUR/USD', risk: 20.00, target: 40.00, outcome: 'LOSS', actual_pl: -18.30 }
-        ];
-
-        window.onload = function () {
+        window.onload = async function () {
             initSupabaseClient();
-            loadStoredData();
+            await checkAuthAndLoad();
             initChart();
 
             // Set default modal dates to today
             const todayStr = new Date().toISOString().split('T')[0];
-            document.getElementById('tradeDate').value = todayStr;
-            document.getElementById('transferDate').value = todayStr;
+            const tradeDateEl = document.getElementById('tradeDate');
+            const transferDateEl = document.getElementById('transferDate');
+            if (tradeDateEl) tradeDateEl.value = todayStr;
+            if (transferDateEl) transferDateEl.value = todayStr;
         };
+
+        // Initialize Supabase Client
+        function initSupabaseClient() {
+            if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+                try {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    console.log("Supabase initialized successfully.");
+                } catch (e) {
+                    console.error("Supabase initialization failed:", e);
+                    supabaseClient = null;
+                }
+            } else {
+                console.log("Operating in local browser storage mode.");
+            }
+        }
+
+        // Authenticate user and fetch isolated user data
+        async function checkAuthAndLoad() {
+            if (supabaseClient) {
+                try {
+                    const { data: { session }, error } = await supabaseClient.auth.getSession();
+                    if (error || !session) {
+                        window.location.href = 'auth.html';
+                        return;
+                    }
+                    currentUser = session.user;
+                    await loadStoredData();
+                } catch (err) {
+                    console.error("Auth session check error:", err);
+                    window.location.href = 'auth.html';
+                }
+            } else {
+                loadLocalData();
+                renderDashboard();
+            }
+        }
+
         // Sign Out Functionality
         async function handleSignOut() {
             if (supabaseClient) {
@@ -527,37 +561,29 @@
                     return;
                 }
             }
-
-            // Clear any local storage session caches if applicable
-            localStorage.removeItem('sb-access-token');
-
-            // Redirect to authentication portal
+            localStorage.clear();
             window.location.href = 'auth.html';
         }
-        function initSupabaseClient() {
-            if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
-                try {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    console.log("Supabase initialized successfully via hardcoded keys.");
-                } catch (e) {
-                    console.error("Supabase initialization failed:", e);
-                    supabaseClient = null;
-                }
-            } else {
-                console.log("No Supabase keys found. Operating in local browser storage mode.");
-            }
-        }
 
+        // Fetch stored trades & transfers strictly matching the current user's ID
         async function loadStoredData() {
-            if (supabaseClient) {
+            if (supabaseClient && currentUser) {
                 try {
-                    const { data: tData, error: tErr } = await supabaseClient.from('trades').select('*');
-                    const { data: trData, error: trErr } = await supabaseClient.from('transfers').select('*');
+                    const { data: tData, error: tErr } = await supabaseClient
+                        .from('trades')
+                        .select('*')
+                        .eq('user_id', currentUser.id);
 
-                    if (!tErr && tData && tData.length > 0) trades = tData;
-                    else loadLocalData();
+                    const { data: trData, error: trErr } = await supabaseClient
+                        .from('transfers')
+                        .select('*')
+                        .eq('user_id', currentUser.id);
 
-                    if (!trErr && trData && trData.length > 0) transfers = trData;
+                    trades = (!tErr && tData) ? tData : [];
+                    transfers = (!trErr && trData) ? trData : [];
+
+                    // Save state cache locally under user ID key
+                    saveLocalCache();
                 } catch (err) {
                     console.warn("Supabase fetch failed, falling back to LocalStorage:", err);
                     loadLocalData();
@@ -569,18 +595,22 @@
         }
 
         function loadLocalData() {
-            const localT = localStorage.getItem('tj_trades');
-            const localTr = localStorage.getItem('tj_transfers');
+            const keyPrefix = currentUser ? currentUser.id : 'guest';
+            const localT = localStorage.getItem(`tj_trades_${keyPrefix}`);
+            const localTr = localStorage.getItem(`tj_transfers_${keyPrefix}`);
 
-            trades = localT ? JSON.parse(localT) : initialTradesSeed;
+            trades = localT ? JSON.parse(localT) : [];
             transfers = localTr ? JSON.parse(localTr) : [];
         }
 
+        function saveLocalCache() {
+            const keyPrefix = currentUser ? currentUser.id : 'guest';
+            localStorage.setItem(`tj_trades_${keyPrefix}`, JSON.stringify(trades));
+            localStorage.setItem(`tj_transfers_${keyPrefix}`, JSON.stringify(transfers));
+        }
+
         function saveData() {
-            if (!supabaseClient) {
-                localStorage.setItem('tj_trades', JSON.stringify(trades));
-                localStorage.setItem('tj_transfers', JSON.stringify(transfers));
-            }
+            saveLocalCache();
             renderDashboard();
         }
 
@@ -601,16 +631,17 @@
             const month = currentDate.getMonth();
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-            document.getElementById('calendarMonthYear').innerText = `${monthNames[month]} ${year}`;
+            const monthYrEl = document.getElementById('calendarMonthYear');
+            if (monthYrEl) monthYrEl.innerText = `${monthNames[month]} ${year}`;
 
             const grid = document.getElementById('calendarGrid');
+            if (!grid) return;
             grid.innerHTML = '';
 
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-            // Group trade data by date
             const tradeMap = {};
             trades.forEach(t => {
                 if (!tradeMap[t.date]) tradeMap[t.date] = { count: 0, pl: 0 };
@@ -623,14 +654,12 @@
             let currentWeekTrades = 0;
             let weekNumber = 1;
 
-            // Prev month trailing days
             for (let i = firstDay - 1; i >= 0; i--) {
                 const dayNum = daysInPrevMonth - i;
                 grid.appendChild(createCalendarCell(dayNum, null, null, true));
                 cellCount++;
             }
 
-            // Current month days
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const data = tradeMap[dateStr];
@@ -643,7 +672,6 @@
                 grid.appendChild(createCalendarCell(day, data ? data : null, dateStr, false));
                 cellCount++;
 
-                // Saturday reached -> Render Week Total Column
                 if (cellCount % 7 === 0) {
                     grid.appendChild(createWeekSummaryCell(weekNumber, currentWeekPL, currentWeekTrades));
                     currentWeekPL = 0;
@@ -652,7 +680,6 @@
                 }
             }
 
-            // Fill trailing days of next month
             let nextMonthDay = 1;
             while (cellCount % 7 !== 0) {
                 grid.appendChild(createCalendarCell(nextMonthDay, null, null, true));
@@ -682,7 +709,8 @@
 
             if (dateStr && !isOtherMonth) {
                 div.onclick = () => {
-                    document.getElementById('tradeDate').value = dateStr;
+                    const tradeDateEl = document.getElementById('tradeDate');
+                    if (tradeDateEl) tradeDateEl.value = dateStr;
                     openTradeModal();
                 };
             }
@@ -695,11 +723,11 @@
                 const plFormatted = (isProfit ? '+' : '') + '$' + data.pl.toFixed(2);
                 const plColor = isProfit ? 'text-emerald-400 font-extrabold' : 'text-rose-400 font-extrabold';
                 bottomContent = `
-                    <div class="mt-1 overflow-hidden leading-tight">
-                        <div class="${plColor} text-xs tracking-tight truncate" title="${plFormatted}">${plFormatted}</div>
-                        <div class="text-[10px] text-slate-400 font-medium whitespace-nowrap">${data.count} trade${data.count > 1 ? 's' : ''}</div>
-                    </div>
-                `;
+            <div class="mt-1 overflow-hidden leading-tight">
+                <div class="${plColor} text-xs tracking-tight truncate" title="${plFormatted}">${plFormatted}</div>
+                <div class="text-[10px] text-slate-400 font-medium whitespace-nowrap">${data.count} trade${data.count > 1 ? 's' : ''}</div>
+            </div>
+        `;
             }
 
             div.innerHTML = topRow + bottomContent;
@@ -715,12 +743,12 @@
             const plColor = isProfit ? 'text-emerald-400' : 'text-rose-400';
 
             div.innerHTML = `
-                <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">WEEK ${weekNum}</div>
-                <div class="mt-1 overflow-hidden leading-tight">
-                    <div class="${plColor} font-extrabold text-xs tracking-tight truncate" title="${plFormatted}">${plFormatted}</div>
-                    <div class="text-[10px] text-slate-500 font-medium whitespace-nowrap">${weekTrades} trades</div>
-                </div>
-            `;
+        <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">WEEK ${weekNum}</div>
+        <div class="mt-1 overflow-hidden leading-tight">
+            <div class="${plColor} font-extrabold text-xs tracking-tight truncate" title="${plFormatted}">${plFormatted}</div>
+            <div class="text-[10px] text-slate-500 font-medium whitespace-nowrap">${weekTrades} trades</div>
+        </div>
+    `;
             return div;
         }
 
@@ -745,7 +773,6 @@
             const tradingDaysCount = Object.keys(dailyPLMap).length;
             const avgDailyPL = tradingDaysCount > 0 ? (totalPL / tradingDaysCount) : 0;
 
-            // Best and Worst Day
             let bestDayVal = -Infinity;
             let bestDayDate = 'No trades';
             let worstDayVal = Infinity;
@@ -774,38 +801,48 @@
 
             const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0.0';
 
-            // Update DOM Elements
-            document.getElementById('statTradingDays').innerText = tradingDaysCount;
-            document.getElementById('statTotalTrades').innerText = totalTrades;
-            document.getElementById('statProfitable').innerText = wins;
-            document.getElementById('statLosing').innerText = losses;
+            const setElText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = text;
+            };
+
+            setElText('statTradingDays', tradingDaysCount);
+            setElText('statTotalTrades', totalTrades);
+            setElText('statProfitable', wins);
+            setElText('statLosing', losses);
 
             const totalPLFormatted = (totalPL >= 0 ? '$' : '-$') + Math.abs(totalPL).toFixed(2);
-            document.getElementById('statTotalPL').innerText = totalPLFormatted;
-            document.getElementById('statTotalPL').className = `text-3xl font-black mt-1.5 ${totalPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            const totalPLEl = document.getElementById('statTotalPL');
+            if (totalPLEl) {
+                totalPLEl.innerText = totalPLFormatted;
+                totalPLEl.className = `text-3xl font-black mt-1.5 ${totalPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            }
 
-            document.getElementById('statAvgDailyPL').innerText = (avgDailyPL >= 0 ? '$' : '-$') + Math.abs(avgDailyPL).toFixed(2);
+            setElText('statAvgDailyPL', (avgDailyPL >= 0 ? '$' : '-$') + Math.abs(avgDailyPL).toFixed(2));
+            setElText('statBestDayVal', (bestDayVal >= 0 ? '$' : '-$') + Math.abs(bestDayVal).toFixed(2));
+            setElText('statBestDayDate', bestDayDate);
+            setElText('statWorstDayVal', (worstDayVal >= 0 ? '$' : '-$') + Math.abs(worstDayVal).toFixed(2));
+            setElText('statWorstDayDate', worstDayDate);
 
-            document.getElementById('statBestDayVal').innerText = (bestDayVal >= 0 ? '$' : '-$') + Math.abs(bestDayVal).toFixed(2);
-            document.getElementById('statBestDayDate').innerText = bestDayDate;
-
-            document.getElementById('statWorstDayVal').innerText = (worstDayVal >= 0 ? '$' : '-$') + Math.abs(worstDayVal).toFixed(2);
-            document.getElementById('statWorstDayDate').innerText = worstDayDate;
-
-            document.getElementById('equityTradingProfit').innerText = totalPLFormatted;
-            document.getElementById('equityNetDeposits').innerText = '$' + netDeposits.toFixed(2);
-            document.getElementById('equityTransfersCount').innerText = `${transfers.length} transfers`;
-            document.getElementById('equityWinRate').innerText = `${winRate}%`;
-            document.getElementById('equityTotalTradesCount').innerText = totalTrades;
+            setElText('equityTradingProfit', totalPLFormatted);
+            setElText('equityNetDeposits', '$' + netDeposits.toFixed(2));
+            setElText('equityTransfersCount', `${transfers.length} transfers`);
+            setElText('equityWinRate', `${winRate}%`);
+            setElText('equityTotalTradesCount', totalTrades);
 
             const winRateNum = parseFloat(winRate);
             const msgEl = document.getElementById('equityWinRateMsg');
-            if (winRateNum >= 50) {
-                msgEl.innerText = 'Good Standing';
-                msgEl.className = 'text-xs text-emerald-400 mt-1 inline-block font-semibold';
-            } else {
-                msgEl.innerText = 'Needs work';
-                msgEl.className = 'text-xs text-amber-400 mt-1 inline-block font-semibold';
+            if (msgEl) {
+                if (totalTrades === 0) {
+                    msgEl.innerText = 'No trades logged';
+                    msgEl.className = 'text-xs text-slate-400 mt-1 inline-block font-semibold';
+                } else if (winRateNum >= 50) {
+                    msgEl.innerText = 'Good Standing';
+                    msgEl.className = 'text-xs text-emerald-400 mt-1 inline-block font-semibold';
+                } else {
+                    msgEl.innerText = 'Needs work';
+                    msgEl.className = 'text-xs text-amber-400 mt-1 inline-block font-semibold';
+                }
             }
         }
 
@@ -818,7 +855,9 @@
         }
 
         function initChart() {
-            const ctx = document.getElementById('equityChartCanvas').getContext('2d');
+            const canvas = document.getElementById('equityChartCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -847,10 +886,7 @@
                         }
                     },
                     scales: {
-                        x: {
-                            grid: { color: '#1e293b' },
-                            ticks: { color: '#94a3b8' }
-                        },
+                        x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
                         y: {
                             grid: { color: '#1e293b' },
                             ticks: {
@@ -880,8 +916,8 @@
             const dataPoints = [];
 
             if (events.length === 0) {
-                labels.push('Sep 8', 'Sep 9');
-                dataPoints.push(0, 0);
+                labels.push('Start');
+                dataPoints.push(0);
             } else {
                 events.forEach(ev => {
                     currentEquity += ev.amount;
@@ -897,11 +933,13 @@
 
         function renderLogsTable() {
             const tbody = document.getElementById('tradeLogsTableBody');
+            if (!tbody) return;
             tbody.innerHTML = '';
-            document.getElementById('logCountBadge').innerText = `${trades.length} Records`;
+            const badge = document.getElementById('logCountBadge');
+            if (badge) badge.innerText = `${trades.length} Records`;
 
             if (trades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No trade logs found. Click "New Trade" to start journaling!</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500 text-xs">No trade logs found. Click "New Trade" to start journaling!</td></tr>`;
                 return;
             }
 
@@ -920,17 +958,17 @@
                 if (t.outcome === 'BREAKEVEN') badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
 
                 tr.innerHTML = `
-                    <td class="p-3 font-medium text-slate-200">${t.date}</td>
-                    <td class="p-3 font-bold text-white uppercase">${t.pair}</td>
-                    <td class="p-3"><span class="px-2.5 py-0.5 border text-xs rounded-full font-semibold ${badgeColor}">${t.outcome}</span></td>
-                    <td class="p-3 text-slate-400">$${parseFloat(t.risk).toFixed(2)}</td>
-                    <td class="p-3 text-slate-400">$${parseFloat(t.target).toFixed(2)}</td>
-                    <td class="p-3 ${plClass}">${isWin ? '+' : ''}$${pl.toFixed(2)}</td>
-                    <td class="p-3 text-right space-x-2">
-                        <button onclick="editTrade('${t.id}')" class="text-slate-400 hover:text-emerald-400 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button onclick="deleteTrade('${t.id}')" class="text-slate-400 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
+            <td class="p-3 font-medium text-slate-200">${t.date}</td>
+            <td class="p-3 font-bold text-white uppercase">${t.pair}</td>
+            <td class="p-3"><span class="px-2.5 py-0.5 border text-xs rounded-full font-semibold ${badgeColor}">${t.outcome}</span></td>
+            <td class="p-3 text-slate-400">$${parseFloat(t.risk || 0).toFixed(2)}</td>
+            <td class="p-3 text-slate-400">$${parseFloat(t.target || 0).toFixed(2)}</td>
+            <td class="p-3 ${plClass}">${isWin ? '+' : ''}$${pl.toFixed(2)}</td>
+            <td class="p-3 text-right space-x-2">
+                <button onclick="editTrade('${t.id}')" class="text-slate-400 hover:text-emerald-400 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button onclick="deleteTrade('${t.id}')" class="text-slate-400 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        `;
                 tbody.appendChild(tr);
             });
         }
@@ -951,18 +989,21 @@
             const id = document.getElementById('tradeId').value || Date.now().toString();
             const tradeObj = {
                 id: id,
+                user_id: currentUser ? currentUser.id : null,
                 date: document.getElementById('tradeDate').value,
                 pair: document.getElementById('tradePair').value.toUpperCase(),
-                risk: parseFloat(document.getElementById('tradeRisk').value),
-                target: parseFloat(document.getElementById('tradeTarget').value),
+                risk: parseFloat(document.getElementById('tradeRisk').value) || 0,
+                target: parseFloat(document.getElementById('tradeTarget').value) || 0,
                 outcome: document.getElementById('tradeOutcome').value,
-                actual_pl: parseFloat(document.getElementById('tradeActualPL').value)
+                actual_pl: parseFloat(document.getElementById('tradeActualPL').value) || 0
             };
 
-            if (supabaseClient) {
+            if (supabaseClient && currentUser) {
                 try {
                     await supabaseClient.from('trades').upsert([tradeObj]);
-                } catch (err) { console.error("Supabase trade sync error:", err); }
+                } catch (err) {
+                    console.error("Supabase trade sync error:", err);
+                }
             }
 
             const existingIdx = trades.findIndex(t => t.id === id);
@@ -974,10 +1015,12 @@
         }
 
         async function deleteTrade(id) {
-            if (supabaseClient) {
+            if (supabaseClient && currentUser) {
                 try {
-                    await supabaseClient.from('trades').delete().eq('id', id);
-                } catch (err) { console.error(err); }
+                    await supabaseClient.from('trades').delete().eq('id', id).eq('user_id', currentUser.id);
+                } catch (err) {
+                    console.error("Delete trade error:", err);
+                }
             }
             trades = trades.filter(t => t.id !== id);
             saveData();
@@ -1002,15 +1045,18 @@
             e.preventDefault();
             const transferObj = {
                 id: Date.now().toString(),
+                user_id: currentUser ? currentUser.id : null,
                 type: document.getElementById('transferType').value,
-                amount: parseFloat(document.getElementById('transferAmount').value),
+                amount: parseFloat(document.getElementById('transferAmount').value) || 0,
                 date: document.getElementById('transferDate').value
             };
 
-            if (supabaseClient) {
+            if (supabaseClient && currentUser) {
                 try {
                     await supabaseClient.from('transfers').insert([transferObj]);
-                } catch (err) { console.error("Supabase transfer error:", err); }
+                } catch (err) {
+                    console.error("Supabase transfer error:", err);
+                }
             }
 
             transfers.push(transferObj);
