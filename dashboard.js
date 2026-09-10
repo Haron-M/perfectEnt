@@ -5,7 +5,7 @@ const SUPABASE_URL = "https://hgtlatmntilgyijyyqnu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_OqD5ksBvDVMePF1gv3s-PQ_PM5hQGnF";
 
 // Application State Variables
-let currentDate = new Date(); // Defaults to current date
+let currentDate = new Date();
 let trades = [];
 let transfers = [];
 let supabaseClient = null;
@@ -14,10 +14,9 @@ let currentUser = null;
 
 window.onload = async function () {
     initSupabaseClient();
-    initChart();              // Initialize empty chart structure first
-    await checkAuthAndLoad(); // Authenticate & load data
+    initChart();
+    await checkAuthAndLoad();
 
-    // Set default modal dates to today
     const todayStr = new Date().toISOString().split('T')[0];
     const tradeDateEl = document.getElementById('tradeDate');
     const transferDateEl = document.getElementById('transferDate');
@@ -25,7 +24,6 @@ window.onload = async function () {
     if (transferDateEl) transferDateEl.value = todayStr;
 };
 
-// Initialize Supabase Client
 function initSupabaseClient() {
     if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
         try {
@@ -40,7 +38,6 @@ function initSupabaseClient() {
     }
 }
 
-// Authenticate user and fetch isolated user data
 async function checkAuthAndLoad() {
     if (supabaseClient) {
         try {
@@ -61,7 +58,6 @@ async function checkAuthAndLoad() {
     }
 }
 
-// Sign Out Functionality
 async function handleSignOut() {
     if (supabaseClient) {
         const { error } = await supabaseClient.auth.signOut();
@@ -75,7 +71,6 @@ async function handleSignOut() {
     window.location.href = 'index.html';
 }
 
-// Fetch stored trades & transfers strictly matching the current user's ID
 async function loadStoredData() {
     if (supabaseClient && currentUser) {
         try {
@@ -92,7 +87,6 @@ async function loadStoredData() {
             trades = (!tErr && tData) ? tData : [];
             transfers = (!trErr && trData) ? trData : [];
 
-            // Save state cache locally under user ID key
             saveLocalCache();
         } catch (err) {
             console.warn("Supabase fetch failed, falling back to LocalStorage:", err);
@@ -213,19 +207,20 @@ function getHeatmapClass(data) {
     return 'cell-no-trades';
 }
 
+// READ-ONLY CALENDAR CELL CREATION
 function createCalendarCell(day, data, dateStr, isOtherMonth) {
     const div = document.createElement('div');
-    // Read-only cell: cursor-default and no onclick event listener attached
-    div.className = `calendar-cell rounded-2xl p-2.5 flex flex-col justify-between border cursor-default ${isOtherMonth ? 'opacity-25 border-transparent bg-darkBg/30' : getHeatmapClass(data)}`;
+    // Removed cursor-pointer and no click listener assigned
+    div.className = `calendar-cell rounded-2xl p-2.5 flex flex-col justify-between border cursor-default select-none ${isOtherMonth ? 'opacity-25 border-transparent bg-darkBg/30' : getHeatmapClass(data)}`;
 
     const topRow = `<div class="font-bold text-slate-300 text-xs">${day}</div>`;
 
     let bottomContent = `<div class="text-[10px] text-slate-500 font-medium">No data</div>`;
     if (data && data.count > 0) {
         const isProfit = data.pl >= 0;
-        // Display as whole number rounded
-        const roundedPL = Math.round(data.pl);
-        const plFormatted = (isProfit ? '+' : '') + '$' + roundedPL;
+        // Integer whole number formatting
+        const wholePL = Math.round(data.pl);
+        const plFormatted = (isProfit ? '+' : '') + '$' + wholePL;
         const plColor = isProfit ? 'text-emerald-400 font-extrabold' : 'text-rose-400 font-extrabold';
         bottomContent = `
             <div class="mt-1 overflow-hidden leading-tight">
@@ -612,7 +607,6 @@ function exportCSV() {
     a.click();
 }
 
-// Modal Controls
 function openTradeModal() {
     document.getElementById('tradeId').value = '';
     document.getElementById('tradeForm').reset();
