@@ -1,0 +1,77 @@
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * {
+      font-family: 'Inter', sans-serif;
+      box-sizing: border-box;
+  }
+
+  body {
+      background-color: #090d14;
+      color: #f1f5f9;
+  }
+
+  /* Custom scrollbars */
+  ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+      background: #090d14;
+  }
+
+  ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+  }
+
+  /* Calendar Cell Styles */
+  .calendar-cell {
+      min-height: 92px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .calendar-cell:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Heatmap Visual States */
+  .cell-heavy-loss {
+      background-color: rgba(239, 68, 68, 0.22);
+      border: 1px solid rgba(239, 68, 68, 0.6);
+  }
+
+  .cell-mod-loss {
+      background-color: rgba(249, 115, 22, 0.22);
+      border: 1px solid rgba(249, 115, 22, 0.6);
+  }
+
+  .cell-minor-loss {
+      background-color: rgba(252, 165, 165, 0.15);
+      border: 1px solid rgba(252, 165, 165, 0.4);
+  }
+
+  .cell-no-trades {
+      background-color: #121824;
+      border: 1px solid #1e293b;
+  }
+
+  .cell-minor-gain {
+      background-color: rgba(167, 243, 208, 0.12);
+      border: 1px solid rgba(167, 243, 208, 0.35);
+  }
+
+  .cell-mod-gain {
+      background-color: rgba(52, 211, 153, 0.22);
+      border: 1px solid rgba(52, 211, 153, 0.6);
+  }
+
+  .cell-strong-gain {
+      background-color: rgba(16, 185, 129, 0.32);
+      border: 1px solid rgba(16, 185, 129, 0.8);
+  }
