@@ -59,7 +59,7 @@
                 </div>
             </div>
 
-            <!-- Action Buttons + Logout Icon (Positioned to the Right of New Trade) -->
+            <!-- Action Buttons + Logout Icon -->
             <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 max-w-full">
                 <!-- Deposit Button -->
                 <button onclick="openDepositModal()"
@@ -75,7 +75,7 @@
                     <span>New Trade</span>
                 </button>
 
-                <!-- Logout Icon Button (Positioned Right Next to New Trade) -->
+                <!-- Logout Icon Button -->
                 <button onclick="handleSignOut()"
                     class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-cardBg/60 hover:bg-rose-500/10 border border-cardBorder hover:border-rose-500/30 text-slate-300 hover:text-rose-400 transition shadow-sm cursor-pointer shrink-0"
                     title="Log Out">
@@ -89,7 +89,7 @@
     <!-- Main Dashboard Container -->
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8">
 
-        <!-- Mobile Key Metric Overview Cards (Always at top on mobile) -->
+        <!-- Mobile Key Metric Overview Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
             <div class="bg-cardBg border border-cardBorder rounded-xl p-4 shadow-lg">
                 <span class="text-xs text-slate-400 font-medium">Trading Profit</span>
@@ -119,70 +119,78 @@
         <!-- SECTION 1: Calendar Heatmap & Secondary Stats -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            <!-- Left Side: Heatmap Calendar (8 Cols) -->
-            <div
-                class="lg:col-span-8 bg-cardBg border border-cardBorder rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col justify-between overflow-hidden">
+            <!-- Left Side: Heatmap Calendar & Monthly Breakdown (8 Cols) -->
+            <div class="lg:col-span-8 flex flex-col space-y-6">
 
-                <!-- Calendar Top Controls -->
-                <div class="flex items-center justify-between gap-4 mb-5">
-                    <div class="flex items-center space-x-3">
-                        <button onclick="changeMonth(-1)"
-                            class="p-2.5 rounded-xl bg-darkBg border border-cardBorder hover:border-slate-500 transition text-slate-300 hover:text-white">
-                            <i class="fa-solid fa-chevron-left text-xs"></i>
-                        </button>
-                        <h2 id="calendarMonthYear"
-                            class="text-xl md:text-2xl font-bold tracking-wide text-white min-w-[170px] text-center">
-                            September 2026</h2>
-                        <button onclick="changeMonth(1)"
-                            class="p-2.5 rounded-xl bg-darkBg border border-cardBorder hover:border-slate-500 transition text-slate-300 hover:text-white">
-                            <i class="fa-solid fa-chevron-right text-xs"></i>
-                        </button>
+                <!-- 1A: Calendar Heatmap -->
+                <div
+                    class="bg-cardBg border border-cardBorder rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col justify-between overflow-hidden">
+                    <!-- Calendar Top Controls -->
+                    <div class="flex items-center justify-between gap-4 mb-5">
+                        <div class="flex items-center space-x-3">
+                            <button onclick="changeMonth(-1)"
+                                class="p-2.5 rounded-xl bg-darkBg border border-cardBorder hover:border-slate-500 transition text-slate-300 hover:text-white">
+                                <i class="fa-solid fa-chevron-left text-xs"></i>
+                            </button>
+                            <h2 id="calendarMonthYear"
+                                class="text-xl md:text-2xl font-bold tracking-wide text-white min-w-[170px] text-center">
+                                September 2026</h2>
+                            <button onclick="changeMonth(1)"
+                                class="p-2.5 rounded-xl bg-darkBg border border-cardBorder hover:border-slate-500 transition text-slate-300 hover:text-white">
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
+
+                        <!-- P/L Gradient Bar Indicator -->
+                        <div class="flex items-center space-x-2 text-xs font-semibold text-slate-400">
+                            <span>Loss</span>
+                            <div
+                                class="h-2.5 w-24 sm:w-36 rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-500">
+                            </div>
+                            <span>Gain</span>
+                        </div>
                     </div>
 
-                    <!-- P/L Gradient Bar Indicator -->
-                    <div class="flex items-center space-x-2 text-xs font-semibold text-slate-400">
-                        <span>Loss</span>
-                        <div
-                            class="h-2.5 w-24 sm:w-36 rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-500">
+                    <!-- Mobile Horizontal Scroll Wrapper for Calendar Heatmap -->
+                    <div class="w-full overflow-x-auto pb-2 -mx-2 px-2" style="-webkit-overflow-scrolling: touch;">
+                        <div class="min-w-[680px]">
+                            <!-- Calendar Days Header -->
+                            <div
+                                class="grid grid-cols-8 gap-2 text-center text-xs font-bold text-slate-400 mb-2 tracking-wider">
+                                <div>SUN</div>
+                                <div>MON</div>
+                                <div>TUE</div>
+                                <div>WED</div>
+                                <div>THU</div>
+                                <div>FRI</div>
+                                <div>SAT</div>
+                                <div class="text-emerald-400 font-extrabold">WEEK</div>
+                            </div>
+
+                            <!-- Dynamic Calendar Grid -->
+                            <div id="calendarGrid" class="grid grid-cols-8 gap-2 text-xs">
+                                <!-- JS dynamically injects cells here -->
+                            </div>
                         </div>
-                        <span>Gain</span>
                     </div>
                 </div>
 
-                <!-- Mobile Horizontal Scroll Wrapper for Calendar Heatmap -->
-                <div class="w-full overflow-x-auto pb-2 -mx-2 px-2" style="-webkit-overflow-scrolling: touch;">
-                    <div class="min-w-[680px]">
-                        <!-- Calendar Days Header -->
-                        <div
-                            class="grid grid-cols-8 gap-2 text-center text-xs font-bold text-slate-400 mb-2 tracking-wider">
-                            <div>SUN</div>
-                            <div>MON</div>
-                            <div>TUE</div>
-                            <div>WED</div>
-                            <div>THU</div>
-                            <div>FRI</div>
-                            <div>SAT</div>
-                            <div class="text-emerald-400 font-extrabold">WEEK</div>
-                        </div>
+                <!-- 1B: Monthly Performance Breakdown Container -->
+                <div class="bg-cardBg border border-cardBorder rounded-2xl p-4 md:p-6 shadow-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3
+                            class="text-sm font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-days text-emerald-400"></i> Monthly Performance (<span
+                                id="monthlyBreakdownYear">2026</span>)
+                        </h3>
+                    </div>
 
-                        <!-- Dynamic Calendar Grid -->
-                        <div id="calendarGrid" class="grid grid-cols-8 gap-2 text-xs">
-                            <!-- JS dynamically injects cells here -->
-                        </div>
+                    <!-- Single Horizontal Scrollable Row for All Screen Sizes -->
+                    <div id="monthlyGrid" class="flex overflow-x-auto gap-3 pb-2 snap-x snap-mandatory scrollbar-thin">
+                        <!-- JS dynamically injects 12 month cards here -->
                     </div>
                 </div>
 
-            </div>
-            <!-- Monthly Performance Breakdown Section -->
-            <div class="mt-6 bg-cardBg border border-cardBorder rounded-2xl p-5 shadow-xl">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                        <i class="fa-solid fa-calendar-days text-emerald-400"></i> Monthly Performance (<span
-                            id="monthlyBreakdownYear"></span>)
-                    </h3>
-                </div>
-                <!-- Responsive 12-month Grid -->
-                <div id="monthlyGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
 
             <!-- Right Side: Side Stats Column (4 Cols) -->
@@ -421,6 +429,7 @@
         </div>
     </div>
 
+    <!-- Script tags (Note: your HTML points to dashboard.js or script.js) -->
     <script src="dashboard.js"></script>
 </body>
 

@@ -57,78 +57,7 @@ async function checkAuthAndLoad() {
         renderDashboard();
     }
 }
-// Add renderMonthlyBreakdown() inside renderDashboard()
-function renderDashboard() {
-    renderCalendar();
-    renderMonthlyBreakdown(); // <--- Added here
-    renderStats();
-    renderChart();
-    renderLogsTable();
-}
 
-function renderMonthlyBreakdown() {
-    const grid = document.getElementById('monthlyGrid');
-    const yearLabel = document.getElementById('monthlyBreakdownYear');
-    if (!grid) return;
-
-    const selectedYear = currentDate.getFullYear();
-    if (yearLabel) yearLabel.innerText = selectedYear;
-
-    grid.innerHTML = '';
-
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    // Aggregate P&L and Trade Counts per month for the selected calendar year
-    const monthlyData = Array.from({ length: 12 }, () => ({ pl: 0, count: 0 }));
-
-    trades.forEach(t => {
-        if (!t.date) return;
-        const [yearStr, monthStr] = t.date.split('-');
-        const tYear = parseInt(yearStr, 10);
-        const tMonth = parseInt(monthStr, 10) - 1;
-
-        if (tYear === selectedYear && tMonth >= 0 && tMonth < 12) {
-            monthlyData[tMonth].pl += parseFloat(t.actual_pl || 0);
-            monthlyData[tMonth].count += 1;
-        }
-    });
-
-    monthlyData.forEach((data, index) => {
-        const card = document.createElement('div');
-        const isProfit = data.pl >= 0;
-        const roundedPL = Math.round(data.pl);
-        const hasData = data.count > 0;
-
-        // Styling based on profitability
-        let plColor = 'text-slate-500';
-        let borderColor = 'border-cardBorder';
-        let bgColor = 'bg-darkBg/40';
-
-        if (hasData) {
-            if (isProfit) {
-                plColor = 'text-emerald-400';
-                borderColor = 'border-emerald-500/30';
-                bgColor = 'bg-emerald-500/5';
-            } else {
-                plColor = 'text-rose-400';
-                borderColor = 'border-rose-500/30';
-                bgColor = 'bg-rose-500/5';
-            }
-        }
-
-        const plFormatted = hasData ? (isProfit ? '+' : '') + '$' + roundedPL : '$0';
-
-        card.className = `rounded-xl p-3 border ${borderColor} ${bgColor} flex flex-col justify-between transition hover:border-slate-600`;
-        card.innerHTML = `
-            <div class="text-[11px] font-black uppercase text-slate-400 tracking-wider">${monthNames[index]}</div>
-            <div class="mt-2">
-                <div class="text-base font-extrabold ${plColor} truncate" title="${plFormatted}">${plFormatted}</div>
-                <div class="text-[10px] text-slate-500 font-medium">${data.count} trade${data.count === 1 ? '' : 's'}</div>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-}
 async function handleSignOut() {
     if (supabaseClient) {
         const { error } = await supabaseClient.auth.signOut();
@@ -194,6 +123,7 @@ function renderDashboard() {
     renderStats();
     renderChart();
     renderLogsTable();
+    renderMonthlyPerformance();
 }
 
 function changeMonth(delta) {
@@ -278,10 +208,8 @@ function getHeatmapClass(data) {
     return 'cell-no-trades';
 }
 
-// READ-ONLY CALENDAR CELL CREATION
 function createCalendarCell(day, data, dateStr, isOtherMonth) {
     const div = document.createElement('div');
-    // Removed cursor-pointer and no click listener assigned
     div.className = `calendar-cell rounded-2xl p-2.5 flex flex-col justify-between border cursor-default select-none ${isOtherMonth ? 'opacity-25 border-transparent bg-darkBg/30' : getHeatmapClass(data)}`;
 
     const topRow = `<div class="font-bold text-slate-300 text-xs">${day}</div>`;
@@ -289,7 +217,6 @@ function createCalendarCell(day, data, dateStr, isOtherMonth) {
     let bottomContent = `<div class="text-[10px] text-slate-500 font-medium">No data</div>`;
     if (data && data.count > 0) {
         const isProfit = data.pl >= 0;
-        // Integer whole number formatting
         const wholePL = Math.round(data.pl);
         const plFormatted = (isProfit ? '+' : '') + '$' + wholePL;
         const plColor = isProfit ? 'text-emerald-400 font-extrabold' : 'text-rose-400 font-extrabold';
@@ -323,6 +250,59 @@ function createWeekSummaryCell(weekNum, weekPL, weekTrades) {
     return div;
 }
 
+function renderMonthlyPerformance() {
+    const grid = document.getElementById('monthlyGrid');
+    if (!grid) return;
+
+    const yearLabel = document.getElementById('monthlyBreakdownYear');
+    const selectedYear = currentDate.getFullYear();
+    if (yearLabel) yearLabel.innerText = selectedYear;
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthStats = Array.from({ length: 12 }, () => ({ pl: 0, count: 0 }));
+
+    trades.forEach(t => {
+        if (!t.date) return;
+        const [y, m] = t.date.split('-').map(Number);
+        if (y === selectedYear && m >= 1 && m <= 12) {
+            monthStats[m - 1].pl += parseFloat(t.actual_pl || 0);
+            monthStats[m - 1].count += 1;
+        }
+    });
+
+    grid.innerHTML = '';
+
+    monthNames.forEach((name, idx) => {
+        const data = monthStats[idx];
+        const card = document.createElement('div');
+
+        const heatmapClass = getHeatmapClass(data);
+
+        // Added 'min-w-[130px] shrink-0 snap-start' to enforce single row scrolling
+        card.className = `calendar-cell rounded-2xl p-3 flex flex-col justify-between border cursor-default select-none min-h-[90px] min-w-[130px] shrink-0 snap-start ${heatmapClass}`;
+
+        const topRow = `<div class="font-bold text-slate-200 text-xs">${name}</div>`;
+
+        let bottomContent = `<div class="text-[10px] text-slate-500 font-medium mt-auto">No data</div>`;
+
+        if (data.count > 0) {
+            const isProfit = data.pl >= 0;
+            const wholePL = Math.round(data.pl);
+            const plFormatted = (isProfit ? '+' : '') + '$' + wholePL;
+            const plColor = isProfit ? 'text-emerald-400 font-extrabold' : 'text-rose-400 font-extrabold';
+
+            bottomContent = `
+                <div class="mt-auto overflow-hidden leading-tight">
+                    <div class="${plColor} text-sm tracking-tight truncate" title="${plFormatted}">${plFormatted}</div>
+                    <div class="text-[10px] text-slate-400 font-medium whitespace-nowrap">${data.count} trade${data.count > 1 ? 's' : ''}</div>
+                </div>
+            `;
+        }
+
+        card.innerHTML = topRow + bottomContent;
+        grid.appendChild(card);
+    });
+}
 function renderStats() {
     let totalPL = 0;
     let totalTrades = trades.length;
