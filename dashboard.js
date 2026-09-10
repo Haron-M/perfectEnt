@@ -14,8 +14,8 @@ let currentUser = null;
 
 window.onload = async function () {
     initSupabaseClient();
-    initChart();              // 1. Initialize empty chart structure first
-    await checkAuthAndLoad(); // 2. Authenticate & load data (calls renderDashboard -> updates chart)
+    initChart();              // Initialize empty chart structure first
+    await checkAuthAndLoad(); // Authenticate & load data
 
     // Set default modal dates to today
     const todayStr = new Date().toISOString().split('T')[0];
@@ -72,7 +72,7 @@ async function handleSignOut() {
         }
     }
     localStorage.clear();
-    window.location.href = 'auth.html';
+    window.location.href = 'index.html';
 }
 
 // Fetch stored trades & transfers strictly matching the current user's ID
@@ -215,22 +215,17 @@ function getHeatmapClass(data) {
 
 function createCalendarCell(day, data, dateStr, isOtherMonth) {
     const div = document.createElement('div');
-    div.className = `calendar-cell rounded-2xl p-2.5 flex flex-col justify-between border cursor-pointer select-none ${isOtherMonth ? 'opacity-25 border-transparent bg-darkBg/30' : getHeatmapClass(data)}`;
-
-    if (dateStr && !isOtherMonth) {
-        div.onclick = () => {
-            const tradeDateEl = document.getElementById('tradeDate');
-            if (tradeDateEl) tradeDateEl.value = dateStr;
-            openTradeModal();
-        };
-    }
+    // Read-only cell: cursor-default and no onclick event listener attached
+    div.className = `calendar-cell rounded-2xl p-2.5 flex flex-col justify-between border cursor-default ${isOtherMonth ? 'opacity-25 border-transparent bg-darkBg/30' : getHeatmapClass(data)}`;
 
     const topRow = `<div class="font-bold text-slate-300 text-xs">${day}</div>`;
 
     let bottomContent = `<div class="text-[10px] text-slate-500 font-medium">No data</div>`;
     if (data && data.count > 0) {
         const isProfit = data.pl >= 0;
-        const plFormatted = (isProfit ? '+' : '') + '$' + data.pl.toFixed(2);
+        // Display as whole number rounded
+        const roundedPL = Math.round(data.pl);
+        const plFormatted = (isProfit ? '+' : '') + '$' + roundedPL;
         const plColor = isProfit ? 'text-emerald-400 font-extrabold' : 'text-rose-400 font-extrabold';
         bottomContent = `
             <div class="mt-1 overflow-hidden leading-tight">
@@ -249,7 +244,7 @@ function createWeekSummaryCell(weekNum, weekPL, weekTrades) {
     div.className = "calendar-cell rounded-2xl p-2.5 flex flex-col justify-between border border-cardBorder bg-darkBg/80 text-right";
 
     const isProfit = weekPL >= 0;
-    const plFormatted = (isProfit ? '+' : '') + '$' + weekPL.toFixed(2);
+    const plFormatted = (isProfit ? '+' : '') + '$' + Math.round(weekPL);
     const plColor = isProfit ? 'text-emerald-400' : 'text-rose-400';
 
     div.innerHTML = `
@@ -321,21 +316,21 @@ function renderStats() {
     setElText('statProfitable', wins);
     setElText('statLosing', losses);
 
-    const totalPLFormatted = (totalPL >= 0 ? '$' : '-$') + Math.abs(totalPL).toFixed(2);
+    const totalPLFormatted = (totalPL >= 0 ? '$' : '-$') + Math.round(Math.abs(totalPL));
     const totalPLEl = document.getElementById('statTotalPL');
     if (totalPLEl) {
         totalPLEl.innerText = totalPLFormatted;
         totalPLEl.className = `text-3xl font-black mt-1.5 ${totalPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
     }
 
-    setElText('statAvgDailyPL', (avgDailyPL >= 0 ? '$' : '-$') + Math.abs(avgDailyPL).toFixed(2));
-    setElText('statBestDayVal', (bestDayVal >= 0 ? '$' : '-$') + Math.abs(bestDayVal).toFixed(2));
+    setElText('statAvgDailyPL', (avgDailyPL >= 0 ? '$' : '-$') + Math.round(Math.abs(avgDailyPL)));
+    setElText('statBestDayVal', (bestDayVal >= 0 ? '$' : '-$') + Math.round(Math.abs(bestDayVal)));
     setElText('statBestDayDate', bestDayDate);
-    setElText('statWorstDayVal', (worstDayVal >= 0 ? '$' : '-$') + Math.abs(worstDayVal).toFixed(2));
+    setElText('statWorstDayVal', (worstDayVal >= 0 ? '$' : '-$') + Math.round(Math.abs(worstDayVal)));
     setElText('statWorstDayDate', worstDayDate);
 
     setElText('equityTradingProfit', totalPLFormatted);
-    setElText('equityNetDeposits', '$' + netDeposits.toFixed(2));
+    setElText('equityNetDeposits', '$' + Math.round(netDeposits));
     setElText('equityTransfersCount', `${transfers.length} transfers`);
     setElText('equityWinRate', `${winRate}%`);
     setElText('equityTotalTradesCount', totalTrades);
@@ -364,7 +359,6 @@ function formatDateLabel(dateStr) {
     return `${monthNames[d.getMonth()]} ${d.getDate()}`;
 }
 
-// Initialize Chart canvas with touch and hover interactions
 function initChart() {
     const canvas = document.getElementById('equityChartCanvas');
     if (!canvas) return;
@@ -393,7 +387,6 @@ function initChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // Enables touch and hover detection anywhere on the vertical axis
             interaction: {
                 mode: 'index',
                 intersect: false
@@ -416,7 +409,7 @@ function initChart() {
                         title: (context) => 'Date: ' + context[0].label,
                         label: (context) => {
                             const val = context.raw || 0;
-                            const formatted = (val >= 0 ? '$' : '-$') + Math.abs(val).toFixed(2);
+                            const formatted = (val >= 0 ? '$' : '-$') + Math.round(Math.abs(val));
                             return ` Equity: ${formatted}`;
                         }
                     }
@@ -431,7 +424,7 @@ function initChart() {
                     grid: { color: 'rgba(30, 41, 59, 0.6)' },
                     ticks: {
                         color: '#94a3b8',
-                        callback: (value) => (value >= 0 ? '$' : '-$') + Math.abs(value).toFixed(2)
+                        callback: (value) => (value >= 0 ? '$' : '-$') + Math.round(Math.abs(value))
                     }
                 }
             }
@@ -501,9 +494,9 @@ function renderLogsTable() {
             <td class="p-3 font-medium text-slate-200">${t.date}</td>
             <td class="p-3 font-bold text-white uppercase">${t.pair}</td>
             <td class="p-3"><span class="px-2.5 py-0.5 border text-xs rounded-full font-semibold ${badgeColor}">${t.outcome}</span></td>
-            <td class="p-3 text-slate-400">$${parseFloat(t.risk || 0).toFixed(2)}</td>
-            <td class="p-3 text-slate-400">$${parseFloat(t.target || 0).toFixed(2)}</td>
-            <td class="p-3 ${plClass}">${isWin ? '+' : ''}$${pl.toFixed(2)}</td>
+            <td class="p-3 text-slate-400">$${Math.round(parseFloat(t.risk || 0))}</td>
+            <td class="p-3 text-slate-400">$${Math.round(parseFloat(t.target || 0))}</td>
+            <td class="p-3 ${plClass}">${isWin ? '+' : ''}$${Math.round(pl)}</td>
             <td class="p-3 text-right space-x-2">
                 <button onclick="editTrade('${t.id}')" class="text-slate-400 hover:text-emerald-400 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
                 <button onclick="deleteTrade('${t.id}')" class="text-slate-400 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button>
@@ -519,8 +512,8 @@ function autoFillPL() {
     const target = parseFloat(document.getElementById('tradeTarget').value) || 0;
     const plInput = document.getElementById('tradeActualPL');
 
-    if (outcome === 'WIN' && target > 0) plInput.value = target;
-    else if (outcome === 'LOSS' && risk > 0) plInput.value = -risk;
+    if (outcome === 'WIN' && target > 0) plInput.value = Math.round(target);
+    else if (outcome === 'LOSS' && risk > 0) plInput.value = -Math.round(risk);
     else if (outcome === 'BREAKEVEN') plInput.value = 0;
 }
 
