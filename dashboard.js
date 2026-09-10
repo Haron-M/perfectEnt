@@ -57,7 +57,78 @@ async function checkAuthAndLoad() {
         renderDashboard();
     }
 }
+// Add renderMonthlyBreakdown() inside renderDashboard()
+function renderDashboard() {
+    renderCalendar();
+    renderMonthlyBreakdown(); // <--- Added here
+    renderStats();
+    renderChart();
+    renderLogsTable();
+}
 
+function renderMonthlyBreakdown() {
+    const grid = document.getElementById('monthlyGrid');
+    const yearLabel = document.getElementById('monthlyBreakdownYear');
+    if (!grid) return;
+
+    const selectedYear = currentDate.getFullYear();
+    if (yearLabel) yearLabel.innerText = selectedYear;
+
+    grid.innerHTML = '';
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    // Aggregate P&L and Trade Counts per month for the selected calendar year
+    const monthlyData = Array.from({ length: 12 }, () => ({ pl: 0, count: 0 }));
+
+    trades.forEach(t => {
+        if (!t.date) return;
+        const [yearStr, monthStr] = t.date.split('-');
+        const tYear = parseInt(yearStr, 10);
+        const tMonth = parseInt(monthStr, 10) - 1;
+
+        if (tYear === selectedYear && tMonth >= 0 && tMonth < 12) {
+            monthlyData[tMonth].pl += parseFloat(t.actual_pl || 0);
+            monthlyData[tMonth].count += 1;
+        }
+    });
+
+    monthlyData.forEach((data, index) => {
+        const card = document.createElement('div');
+        const isProfit = data.pl >= 0;
+        const roundedPL = Math.round(data.pl);
+        const hasData = data.count > 0;
+
+        // Styling based on profitability
+        let plColor = 'text-slate-500';
+        let borderColor = 'border-cardBorder';
+        let bgColor = 'bg-darkBg/40';
+
+        if (hasData) {
+            if (isProfit) {
+                plColor = 'text-emerald-400';
+                borderColor = 'border-emerald-500/30';
+                bgColor = 'bg-emerald-500/5';
+            } else {
+                plColor = 'text-rose-400';
+                borderColor = 'border-rose-500/30';
+                bgColor = 'bg-rose-500/5';
+            }
+        }
+
+        const plFormatted = hasData ? (isProfit ? '+' : '') + '$' + roundedPL : '$0';
+
+        card.className = `rounded-xl p-3 border ${borderColor} ${bgColor} flex flex-col justify-between transition hover:border-slate-600`;
+        card.innerHTML = `
+            <div class="text-[11px] font-black uppercase text-slate-400 tracking-wider">${monthNames[index]}</div>
+            <div class="mt-2">
+                <div class="text-base font-extrabold ${plColor} truncate" title="${plFormatted}">${plFormatted}</div>
+                <div class="text-[10px] text-slate-500 font-medium">${data.count} trade${data.count === 1 ? '' : 's'}</div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
 async function handleSignOut() {
     if (supabaseClient) {
         const { error } = await supabaseClient.auth.signOut();
