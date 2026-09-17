@@ -43,14 +43,14 @@ async function checkAuthAndLoad() {
         try {
             const { data: { session }, error } = await supabaseClient.auth.getSession();
             if (error || !session) {
-                window.location.href = 'auth.html';
+                window.location.href = 'index.html';
                 return;
             }
             currentUser = session.user;
             await loadStoredData();
         } catch (err) {
             console.error("Auth session check error:", err);
-            window.location.href = 'auth.html';
+            window.location.href = 'index.html';
         }
     } else {
         loadLocalData();
